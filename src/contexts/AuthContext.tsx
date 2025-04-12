@@ -160,14 +160,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error("Please enter a valid email address");
       }
       
-      // Check if email already exists using the auth API
-      const { data: existingUsers } = await supabase.auth.admin.listUsers({
-        filters: {
-          email
+      // Check if email already exists - use signInWithOtp with shouldCreateUser: false to check
+      // This is a workaround as the admin.listUsers with filters is not available in the client
+      const { data: existingUserData, error: existingUserError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false
         }
       });
         
-      if (existingUsers && existingUsers.users.length > 0) {
+      // If there's no error with code 'user_not_found', it means the user exists
+      if (!existingUserError || (existingUserError && existingUserError.message !== 'User not found')) {
         throw new Error("This email is already registered. Please use a different email or try logging in.");
       }
       
