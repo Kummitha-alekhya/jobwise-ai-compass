@@ -10,7 +10,7 @@ interface Profile {
   id: string;
   username: string;
   role: UserRole;
-  email?: string; // Make email optional since it's not in the profiles table
+  email: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -48,11 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
-      // Add email from user metadata if available
-      return data ? {
-        ...data,
-        email: session?.user?.email || ''
-      } as Profile : null;
+      return data as Profile;
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
@@ -74,15 +70,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
+      async (event, newSession) => {
+        setSession(newSession);
         
-        if (session?.user) {
+        if (newSession?.user) {
           // Defer profile fetching to avoid Supabase auth callback issues
           setTimeout(async () => {
-            const userProfile = await fetchProfile(session.user.id);
+            const userProfile = await fetchProfile(newSession.user.id);
             setProfile(userProfile);
-            setUser(mapUser(session.user, userProfile));
+            setUser(mapUser(newSession.user, userProfile));
           }, 0);
         } else {
           setProfile(null);
@@ -161,8 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // Check if email already exists - use signInWithOtp with shouldCreateUser: false to check
-      // This is a workaround as the admin.listUsers with filters is not available in the client
-      const { data: existingUserData, error: existingUserError } = await supabase.auth.signInWithOtp({
+      const { error: existingUserError } = await supabase.auth.signInWithOtp({
         email,
         options: {
           shouldCreateUser: false
@@ -170,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
         
       // If there's no error with code 'user_not_found', it means the user exists
-      if (!existingUserError || (existingUserError && existingUserError.message !== 'User not found')) {
+      if (!existingUserError || (existingUserError && !existingUserError.message.includes('not found'))) {
         throw new Error("This email is already registered. Please use a different email or try logging in.");
       }
       
@@ -182,7 +177,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             username: name,
             role,
-            email // Store email in user metadata also
           }
         }
       });

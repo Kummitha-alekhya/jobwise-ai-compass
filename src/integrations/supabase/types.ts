@@ -11,34 +11,43 @@ export type Database = {
     Tables: {
       applications: {
         Row: {
-          applied_at: string
+          applied_at: string | null
           candidate_id: string
           cover_letter: string | null
+          feedback: string | null
           id: string
           job_id: string
           resume_id: string | null
+          resume_url: string | null
+          score: number | null
           status: string
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
-          applied_at?: string
+          applied_at?: string | null
           candidate_id: string
           cover_letter?: string | null
+          feedback?: string | null
           id?: string
           job_id: string
           resume_id?: string | null
+          resume_url?: string | null
+          score?: number | null
           status?: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
-          applied_at?: string
+          applied_at?: string | null
           candidate_id?: string
           cover_letter?: string | null
+          feedback?: string | null
           id?: string
           job_id?: string
           resume_id?: string | null
+          resume_url?: string | null
+          score?: number | null
           status?: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -62,55 +71,80 @@ export type Database = {
             referencedRelation: "resumes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_candidate"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_job"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_resume"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       jobs: {
         Row: {
           company: string
-          created_at: string
+          created_at: string | null
           description: string
           employer_id: string
-          employment_type: string
           id: string
-          location: string
-          requirements: string[]
-          salary: string | null
-          skills: string[]
+          location: string | null
+          requirements: string | null
+          salary_range: string | null
+          skills: string[] | null
           status: string
           title: string
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           company: string
-          created_at?: string
+          created_at?: string | null
           description: string
           employer_id: string
-          employment_type?: string
           id?: string
-          location: string
-          requirements?: string[]
-          salary?: string | null
-          skills?: string[]
+          location?: string | null
+          requirements?: string | null
+          salary_range?: string | null
+          skills?: string[] | null
           status?: string
           title: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           company?: string
-          created_at?: string
+          created_at?: string | null
           description?: string
           employer_id?: string
-          employment_type?: string
           id?: string
-          location?: string
-          requirements?: string[]
-          salary?: string | null
-          skills?: string[]
+          location?: string | null
+          requirements?: string | null
+          salary_range?: string | null
+          skills?: string[] | null
           status?: string
           title?: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_employer"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "jobs_employer_id_fkey"
             columns: ["employer_id"]
@@ -122,24 +156,27 @@ export type Database = {
       }
       profiles: {
         Row: {
-          created_at: string
+          created_at: string | null
+          email: string
           id: string
           role: string
-          updated_at: string
+          updated_at: string | null
           username: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
+          email: string
           id: string
           role: string
-          updated_at?: string
+          updated_at?: string | null
           username: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
+          email?: string
           id?: string
           role?: string
-          updated_at?: string
+          updated_at?: string | null
           username?: string
         }
         Relationships: []
@@ -147,35 +184,39 @@ export type Database = {
       resumes: {
         Row: {
           candidate_id: string
-          created_at: string
-          experience: Json
+          content: string | null
+          created_at: string | null
           id: string
-          personal_details: Json
-          projects: Json
-          skills: Json
-          updated_at: string
+          resume_url: string | null
+          title: string
+          updated_at: string | null
         }
         Insert: {
           candidate_id: string
-          created_at?: string
-          experience?: Json
+          content?: string | null
+          created_at?: string | null
           id?: string
-          personal_details?: Json
-          projects?: Json
-          skills?: Json
-          updated_at?: string
+          resume_url?: string | null
+          title: string
+          updated_at?: string | null
         }
         Update: {
           candidate_id?: string
-          created_at?: string
-          experience?: Json
+          content?: string | null
+          created_at?: string | null
           id?: string
-          personal_details?: Json
-          projects?: Json
-          skills?: Json
-          updated_at?: string
+          resume_url?: string | null
+          title?: string
+          updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_candidate"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "resumes_candidate_id_fkey"
             columns: ["candidate_id"]
@@ -190,7 +231,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      user_has_role: {
+        Args: { role: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

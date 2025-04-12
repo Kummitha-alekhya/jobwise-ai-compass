@@ -80,17 +80,11 @@ export default function Signup() {
         description: "Welcome to JobWise. Your account has been created.",
       });
       
-      // Redirect based on role after successful signup
-      navigate(values.role === "employer" ? "/employer/dashboard" : "/candidate/dashboard");
+      // Redirect will be handled in the signup function
     } catch (error) {
       let message = "Failed to create account";
       if (error instanceof Error) {
-        // Check for duplicate email error
-        if (error.message.includes("email") && error.message.includes("already")) {
-          message = "This email is already registered. Please use a different email or try logging in.";
-        } else {
-          message = error.message;
-        }
+        message = error.message;
       }
       
       setServerError(message);
