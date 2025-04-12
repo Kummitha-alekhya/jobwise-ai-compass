@@ -9,6 +9,7 @@ import { User, UserRole } from "@/types";
 interface Profile {
   id: string;
   username: string;
+  email: string;
   role: UserRole;
 }
 
@@ -17,7 +18,7 @@ interface AuthContextType {
   profile: Profile | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, username: string, role: UserRole) => Promise<void>;
+  signup: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (username: string) => Promise<void>;
 }
@@ -103,6 +104,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      // Validate email format before sending to Supabase
+      const emailRegex = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+      if (!emailRegex.test(email)) {
+        throw new Error("Please enter a valid email address");
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -138,17 +145,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, password: string, username: string, role: UserRole) => {
+  const signup = async (name: string, email: string, password: string, role: UserRole) => {
     setIsLoading(true);
     try {
+      // Validate email format before sending to Supabase
+      const emailRegex = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+      if (!emailRegex.test(email)) {
+        throw new Error("Please enter a valid email address");
+      }
+      
+      // Check if email already exists
+      const { data: existingUsers } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email);
+        
+      if (existingUsers && existingUsers.length > 0) {
+        throw new Error("This email is already registered. Please use a different email or try logging in.");
+      }
+      
       // Register user with Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            username,
-            role
+            username: name,
+            role,
+            email // Store email in user metadata also
           }
         }
       });
@@ -202,7 +226,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ username, updated_at: new Date().toISOString() })
+        .update({ 
+          username, 
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', user.id);
       
       if (error) throw error;

@@ -25,12 +25,22 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-// Define schema for form validation
+// Enhanced email regex pattern for better validation
+const EMAIL_REGEX = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+
+// Define enhanced schema for form validation with better error messages
 const signupSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().min(1, "Email is required").email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(1, "Please confirm your password"),
+  name: z.string().min(1, "Full name is required"),
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .regex(EMAIL_REGEX, "Please enter a valid email address"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters"),
+  confirmPassword: z
+    .string()
+    .min(1, "Please confirm your password"),
   role: z.enum(["candidate", "employer"] as const),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -55,6 +65,7 @@ export default function Signup() {
       confirmPassword: "",
       role: "candidate" as UserRole,
     },
+    mode: "onChange", // Enable real-time validation as the user types
   });
 
   const onSubmit = async (values: SignupFormValues) => {
@@ -93,6 +104,9 @@ export default function Signup() {
       setIsLoading(false);
     }
   };
+
+  // Determine if form is valid for button state
+  const isValid = form.formState.isValid;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -242,7 +256,7 @@ export default function Signup() {
                 <Button 
                   type="submit" 
                   className="w-full mb-4" 
-                  disabled={isLoading}
+                  disabled={isLoading || !isValid}
                 >
                   {isLoading ? (
                     <>

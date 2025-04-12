@@ -23,10 +23,18 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-// Define schema for form validation
+// Enhanced email regex pattern for better validation
+const EMAIL_REGEX = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+
+// Define schema for form validation with better error messages
 const loginSchema = z.object({
-  email: z.string().min(1, "Email is required").email("Please enter a valid email"),
-  password: z.string().min(1, "Password is required"),
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .regex(EMAIL_REGEX, "Please enter a valid email address"),
+  password: z
+    .string()
+    .min(1, "Password is required"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -44,6 +52,7 @@ export default function Login() {
       email: "",
       password: "",
     },
+    mode: "onChange", // Enable real-time validation as the user types
   });
 
   const onSubmit = async (values: LoginFormValues) => {
@@ -76,6 +85,9 @@ export default function Login() {
       setIsLoading(false);
     }
   };
+
+  // Determine if form is valid for button state
+  const isValid = form.formState.isValid;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -153,7 +165,7 @@ export default function Login() {
                 <Button 
                   type="submit" 
                   className="w-full mb-4" 
-                  disabled={isLoading}
+                  disabled={isLoading || !isValid}
                 >
                   {isLoading ? (
                     <>
