@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Application, Job } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { Calendar, CheckCircle, Clock, FileText, XCircle } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { Progress } from "@/components/ui/Progress";
 
 interface ApplicationCardProps {
   application: Application;
