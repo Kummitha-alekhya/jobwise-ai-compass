@@ -26,7 +26,6 @@ export default function Login() {
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("candidate");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,15 +33,14 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      await login(email, password, role);
+      await login(email, password);
       
       toast({
         title: "Login successful!",
         description: "Welcome back to JobWise.",
       });
       
-      // Redirect based on role
-      navigate(role === "employer" ? "/employer/dashboard" : "/candidate/dashboard");
+      // Redirection will be handled in the login function based on user role
     } catch (error) {
       let message = "Failed to login";
       if (error instanceof Error) {
@@ -74,25 +72,6 @@ export default function Login() {
           
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="role">I am a</Label>
-                <RadioGroup 
-                  id="role" 
-                  className="flex gap-4" 
-                  defaultValue="candidate"
-                  onValueChange={(value) => setRole(value as UserRole)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="candidate" id="candidate" />
-                    <Label htmlFor="candidate" className="cursor-pointer">Candidate</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="employer" id="employer" />
-                    <Label htmlFor="employer" className="cursor-pointer">Employer</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input

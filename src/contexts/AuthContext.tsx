@@ -1,14 +1,15 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { User, Session } from '@supabase/supabase-js';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import { User, UserRole } from "@/types";
 
 interface Profile {
   id: string;
   username: string;
-  role: "candidate" | "employer";
+  role: UserRole;
 }
 
 interface AuthContextType {
@@ -16,7 +17,7 @@ interface AuthContextType {
   profile: Profile | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, username: string, role: "candidate" | "employer") => Promise<void>;
+  signup: (email: string, password: string, username: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (username: string) => Promise<void>;
 }
@@ -51,22 +52,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Helper to map Supabase User to our User type
+  const mapUser = (supabaseUser: SupabaseUser, userProfile: Profile | null): User => {
+    return {
+      id: supabaseUser.id,
+      email: supabaseUser.email || '',
+      role: userProfile?.role || 'candidate',
+      name: userProfile?.username || supabaseUser.email?.split('@')[0] || '',
+      avatar: supabaseUser.user_metadata.avatar_url,
+    };
+  };
+
   // Set up auth state listener
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
-        setUser(session?.user ?? null);
         
         if (session?.user) {
           // Defer profile fetching to avoid Supabase auth callback issues
           setTimeout(async () => {
-            const profile = await fetchProfile(session.user.id);
-            setProfile(profile);
+            const userProfile = await fetchProfile(session.user.id);
+            setProfile(userProfile);
+            setUser(mapUser(session.user, userProfile));
           }, 0);
         } else {
           setProfile(null);
+          setUser(null);
         }
       }
     );
@@ -74,11 +87,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // THEN check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
 
       if (session?.user) {
-        const profile = await fetchProfile(session.user.id);
-        setProfile(profile);
+        const userProfile = await fetchProfile(session.user.id);
+        setProfile(userProfile);
+        setUser(mapUser(session.user, userProfile));
       }
       
       setIsLoading(false);
@@ -98,13 +111,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
       
       if (data.user) {
-        const profile = await fetchProfile(data.user.id);
-        setProfile(profile);
+        const userProfile = await fetchProfile(data.user.id);
+        setProfile(userProfile);
+        setUser(mapUser(data.user, userProfile));
         
         // Redirect based on user role
-        if (profile?.role === 'candidate') {
+        if (userProfile?.role === 'candidate') {
           navigate('/candidate/dashboard');
-        } else if (profile?.role === 'employer') {
+        } else if (userProfile?.role === 'employer') {
           navigate('/employer/dashboard');
         } else {
           navigate('/');
@@ -124,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, password: string, username: string, role: "candidate" | "employer") => {
+  const signup = async (email: string, password: string, username: string, role: UserRole) => {
     setIsLoading(true);
     try {
       // Register user with Supabase
@@ -195,6 +209,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Update local profile state
       setProfile(prev => prev ? { ...prev, username } : null);
+      
+      // Update user state with new username
+      setUser(prev => prev ? { ...prev, name: username } : null);
       
       toast({
         title: "Profile updated",

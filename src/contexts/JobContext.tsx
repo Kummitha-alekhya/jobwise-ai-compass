@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Job, Application } from '@/types';
+import { Job, Application, ResumeFeedback } from '@/types';
 import { useAuth } from './AuthContext';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -17,9 +16,35 @@ interface JobContextType {
   getApplicationsForJob: (jobId: string) => Application[];
   getApplicationById: (id: string) => Application | undefined;
   analyzeResumeForJob: (resume: string, jobId: string) => Promise<{ score: number; keywords: string[] }>;
-  getResumeFeedback: (resume: string) => Promise<Application['feedback']>;
+  getResumeFeedback: (resume: string) => Promise<ResumeFeedback>;
   deleteJob: (jobId: string) => Promise<void>;
 }
+
+const mapDbJobToJob = (dbJob: any): Job => ({
+  id: dbJob.id,
+  employerId: dbJob.employer_id,
+  title: dbJob.title,
+  company: dbJob.company,
+  location: dbJob.location,
+  description: dbJob.description,
+  requirements: dbJob.requirements || [],
+  skills: dbJob.skills || [],
+  salary: dbJob.salary,
+  status: dbJob.status,
+  createdAt: dbJob.created_at,
+  updatedAt: dbJob.updated_at,
+});
+
+const mapDbApplicationToApplication = (dbApp: any): Application => ({
+  id: dbApp.id,
+  jobId: dbApp.job_id,
+  candidateId: dbApp.candidate_id,
+  resume: dbApp.resume_id || '',
+  coverLetter: dbApp.cover_letter,
+  status: dbApp.status,
+  appliedAt: dbApp.applied_at,
+  updatedAt: dbApp.updated_at,
+});
 
 const JobContext = createContext<JobContextType | undefined>(undefined);
 
@@ -28,7 +53,6 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   
-  // Filter jobs/applications based on user role
   const userJobs = profile?.role === 'employer' 
     ? jobs.filter(job => job.employerId === user?.id)
     : [];
@@ -37,9 +61,7 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ? applications.filter(app => app.candidateId === user?.id)
     : [];
 
-  // Fetch jobs and applications
   useEffect(() => {
-    // Only fetch data if we have a logged-in user
     if (user) {
       fetchJobs();
       fetchApplications();
@@ -54,7 +76,7 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
       if (error) throw error;
       
-      setJobs(data as Job[]);
+      setJobs(data.map(mapDbJobToJob));
     } catch (error) {
       console.error('Error fetching jobs:', error);
     }
@@ -68,7 +90,7 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
       if (error) throw error;
       
-      setApplications(data as Application[]);
+      setApplications(data.map(mapDbApplicationToApplication));
     } catch (error) {
       console.error('Error fetching applications:', error);
     }
@@ -88,20 +110,23 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const { data, error } = await supabase
         .from('jobs')
         .insert({
-          ...jobData,
+          title: jobData.title,
+          company: jobData.company,
+          location: jobData.location,
+          description: jobData.description,
+          requirements: jobData.requirements || [],
+          skills: jobData.skills || [],
+          salary: jobData.salary,
           employer_id: user.id,
           created_at: new Date().toISOString(),
           status: 'active',
-          requirements: jobData.requirements || [],
-          skills: jobData.skills || []
         })
         .select()
         .single();
       
       if (error) throw error;
       
-      // Update local state
-      setJobs(prevJobs => [...prevJobs, data as Job]);
+      setJobs(prevJobs => [...prevJobs, mapDbJobToJob(data)]);
       
       toast({
         title: "Job posted",
@@ -127,7 +152,6 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return null;
     }
     
-    // Check if already applied
     const alreadyApplied = applications.some(app => app.jobId === jobId && app.candidateId === user.id);
     if (alreadyApplied) {
       toast({
@@ -138,7 +162,6 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     
     try {
-      // Analyze the resume against the job
       const analysis = await analyzeResumeForJob(resume, jobId);
       
       const newApplication = {
@@ -160,9 +183,10 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       if (error) throw error;
       
-      const application = data as unknown as Application;
+      const application = mapDbApplicationToApplication(data);
+      application.matchScore = analysis.score;
+      application.matchingKeywords = analysis.keywords;
       
-      // Update local state
       setApplications(prevApps => [...prevApps, application]);
       
       toast({
@@ -194,7 +218,6 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       if (error) throw error;
       
-      // Update local state
       setApplications(prevApps => 
         prevApps.map(app => 
           app.id === applicationId ? { ...app, status } : app
@@ -234,7 +257,6 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       if (error) throw error;
       
-      // Update local state
       setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
       
       toast({
@@ -263,22 +285,17 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return applications.find(app => app.id === id);
   };
 
-  // AI functions (simulated for demo)
   const analyzeResumeForJob = async (resume: string, jobId: string): Promise<{ score: number; keywords: string[] }> => {
     const job = getJobById(jobId);
     if (!job) throw new Error('Job not found');
     
-    // In a real app, this would use an AI service
-    // For demo purposes, we'll generate a random score and use the job skills as keywords
-    const score = Math.floor(Math.random() * 41) + 60; // Score between 60-100
-    const keywords = job.skills.filter(() => Math.random() > 0.3); // Randomly select some skills
+    const score = Math.floor(Math.random() * 41) + 60;
+    const keywords = job.skills.filter(() => Math.random() > 0.3);
     
     return { score, keywords };
   };
 
-  const getResumeFeedback = async (resume: string): Promise<Application['feedback']> => {
-    // In a real app, this would use an AI service
-    // For demo purposes, we'll generate mock feedback
+  const getResumeFeedback = async (resume: string): Promise<ResumeFeedback> => {
     return {
       grammar: {
         score: Math.floor(Math.random() * 30) + 70,
