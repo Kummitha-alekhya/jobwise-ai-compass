@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { JobProvider } from "@/contexts/JobContext";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
@@ -20,27 +21,47 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <JobProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <JobProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
-              <Route path="/jobs" element={<JobsList />} />
-              <Route path="/jobs/:id" element={<JobDetails />} />
-              <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
-              <Route path="/employer/dashboard" element={<EmployerDashboard />} />
-              <Route path="/candidate/applications/:id" element={<CandidateApplicationDetails />} />
+              <Route path="/jobs" element={
+                <ProtectedRoute>
+                  <JobsList />
+                </ProtectedRoute>
+              } />
+              <Route path="/jobs/:id" element={
+                <ProtectedRoute>
+                  <JobDetails />
+                </ProtectedRoute>
+              } />
+              <Route path="/candidate/dashboard" element={
+                <ProtectedRoute allowedRoles={["candidate"]}>
+                  <CandidateDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/employer/dashboard" element={
+                <ProtectedRoute allowedRoles={["employer"]}>
+                  <EmployerDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/candidate/applications/:id" element={
+                <ProtectedRoute allowedRoles={["candidate"]}>
+                  <CandidateApplicationDetails />
+                </ProtectedRoute>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </JobProvider>
-    </AuthProvider>
+          </TooltipProvider>
+        </JobProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
