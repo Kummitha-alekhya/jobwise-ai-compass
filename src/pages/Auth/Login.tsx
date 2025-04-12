@@ -60,6 +60,7 @@ export default function Login() {
     setIsLoading(true);
     
     try {
+      // Call login with just email and password
       await login(values.email, values.password);
       
       toast({

@@ -9,8 +9,10 @@ import { User, UserRole } from "@/types";
 interface Profile {
   id: string;
   username: string;
-  email: string;
   role: UserRole;
+  email?: string; // Make email optional since it's not in the profiles table
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface AuthContextType {
@@ -46,7 +48,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
-      return data as Profile;
+      // Add email from user metadata if available
+      return data ? {
+        ...data,
+        email: session?.user?.email || ''
+      } as Profile : null;
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
@@ -154,13 +160,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error("Please enter a valid email address");
       }
       
-      // Check if email already exists
-      const { data: existingUsers } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('email', email);
+      // Check if email already exists using the auth API
+      const { data: existingUsers } = await supabase.auth.admin.listUsers({
+        filters: {
+          email
+        }
+      });
         
-      if (existingUsers && existingUsers.length > 0) {
+      if (existingUsers && existingUsers.users.length > 0) {
         throw new Error("This email is already registered. Please use a different email or try logging in.");
       }
       
