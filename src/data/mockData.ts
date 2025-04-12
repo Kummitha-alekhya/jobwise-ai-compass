@@ -1,0 +1,125 @@
+
+import { Job, Application } from "@/types";
+
+export const mockJobs: Job[] = [
+  {
+    id: "job-1",
+    employerId: "emp-1",
+    title: "Frontend Developer",
+    company: "TechCorp",
+    location: "Remote",
+    description: "We're looking for a skilled Frontend Developer to join our growing team. You'll be responsible for building responsive web applications using React, TypeScript, and modern frontend technologies.",
+    requirements: [
+      "3+ years of frontend development experience",
+      "Strong proficiency in React and TypeScript",
+      "Experience with state management (Redux, Context API)",
+      "Understanding of responsive design principles",
+    ],
+    skills: ["React", "TypeScript", "HTML", "CSS", "JavaScript", "Redux"],
+    salary: "$90,000 - $120,000",
+    createdAt: "2025-04-01T12:00:00Z",
+    status: "active",
+  },
+  {
+    id: "job-2",
+    employerId: "emp-1",
+    title: "Backend Engineer",
+    company: "TechCorp",
+    location: "San Francisco, CA (Hybrid)",
+    description: "TechCorp is seeking an experienced Backend Engineer to design, develop, and maintain our server-side applications. The ideal candidate will have a strong foundation in Node.js and database technologies.",
+    requirements: [
+      "5+ years of backend development experience",
+      "Expertise in Node.js and Express",
+      "Experience with SQL and NoSQL databases",
+      "Understanding of RESTful API design",
+    ],
+    skills: ["Node.js", "Express", "MongoDB", "PostgreSQL", "Docker", "Microservices"],
+    salary: "$110,000 - $150,000",
+    createdAt: "2025-04-05T09:30:00Z",
+    status: "active",
+  },
+  {
+    id: "job-3",
+    employerId: "emp-1",
+    title: "Full Stack Developer",
+    company: "TechCorp",
+    location: "Remote",
+    description: "Join our innovative team as a Full Stack Developer! You'll work on both frontend and backend aspects of our applications, implementing new features and maintaining existing ones.",
+    requirements: [
+      "4+ years of full stack development experience",
+      "Proficiency in React and Node.js",
+      "Experience with database design and optimization",
+      "Strong problem-solving skills",
+    ],
+    skills: ["React", "Node.js", "TypeScript", "MongoDB", "AWS", "Git"],
+    salary: "$100,000 - $140,000",
+    createdAt: "2025-04-08T15:45:00Z",
+    status: "active",
+  },
+  {
+    id: "job-4",
+    employerId: "emp-1",
+    title: "DevOps Engineer",
+    company: "TechCorp",
+    location: "New York, NY",
+    description: "TechCorp is looking for a DevOps Engineer to help automate our CI/CD pipelines and improve infrastructure reliability. You'll work closely with our development and operations teams.",
+    requirements: [
+      "3+ years of DevOps experience",
+      "Experience with AWS or similar cloud platforms",
+      "Knowledge of containerization (Docker, Kubernetes)",
+      "Familiarity with CI/CD concepts and tools",
+    ],
+    skills: ["AWS", "Docker", "Kubernetes", "Jenkins", "Terraform", "Linux"],
+    salary: "$120,000 - $160,000",
+    createdAt: "2025-04-10T11:15:00Z",
+    status: "active",
+  },
+];
+
+export const mockApplications: Application[] = [
+  {
+    id: "app-1",
+    jobId: "job-1",
+    candidateId: "cand-1",
+    resume: "Experienced Frontend Developer with 4 years of professional experience in React, TypeScript, and modern web technologies...",
+    coverLetter: "I am excited to apply for the Frontend Developer position at TechCorp...",
+    matchScore: 85,
+    matchingKeywords: ["React", "TypeScript", "JavaScript", "Redux"],
+    status: "in_review",
+    appliedAt: "2025-04-05T14:30:00Z",
+    feedback: {
+      grammar: {
+        score: 92,
+        suggestions: ["Minor improvements in punctuation usage."],
+      },
+      structure: {
+        score: 88,
+        suggestions: ["Good structure overall. Consider adding a skills section at the top."],
+      },
+      keywords: {
+        score: 85,
+        matching: ["React", "TypeScript", "JavaScript", "Redux"],
+        missing: ["HTML", "CSS"],
+      },
+      ats: {
+        score: 90,
+        suggestions: ["ATS-friendly format. Good job!"],
+      },
+      branding: {
+        score: 82,
+        suggestions: ["Consider highlighting your unique contributions more clearly."],
+      },
+      overall: 87,
+    },
+  },
+  {
+    id: "app-2",
+    jobId: "job-3",
+    candidateId: "cand-1",
+    resume: "Full Stack Developer with expertise in React, Node.js, and database design...",
+    matchScore: 78,
+    matchingKeywords: ["React", "Node.js", "Git"],
+    status: "applied",
+    appliedAt: "2025-04-11T09:45:00Z",
+  },
+];
