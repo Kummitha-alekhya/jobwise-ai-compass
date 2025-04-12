@@ -1,7 +1,6 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useJobs } from "@/contexts/JobContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { PageTitle } from "@/components/ui/PageTitle";
@@ -19,7 +18,6 @@ import { Search, Filter } from "lucide-react";
 
 export default function JobsList() {
   const { jobs } = useJobs();
-  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   
@@ -39,11 +37,6 @@ export default function JobsList() {
   
   // Get unique locations for the filter
   const locations = Array.from(new Set(activeJobs.map(job => job.location)));
-
-  // Handle location filter change
-  const handleLocationChange = (value: string) => {
-    setLocationFilter(value === "all" ? "" : value);
-  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -68,7 +61,7 @@ export default function JobsList() {
             </div>
             
             <div className="w-full md:w-64">
-              <Select onValueChange={handleLocationChange} value={locationFilter || "all"}>
+              <Select onValueChange={setLocationFilter} value={locationFilter}>
                 <SelectTrigger>
                   <div className="flex items-center">
                     <Filter className="mr-2 h-4 w-4" />

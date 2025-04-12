@@ -1,13 +1,11 @@
 
-// Extending the existing types file with types that match our database schema
-
-export type UserRole = "candidate" | "employer";
+export type UserRole = "employer" | "candidate";
 
 export interface User {
   id: string;
+  name: string;
   email: string;
   role: UserRole;
-  name?: string;
   avatar?: string;
 }
 
@@ -21,9 +19,8 @@ export interface Job {
   requirements: string[];
   skills: string[];
   salary?: string;
-  status: "active" | "closed";
   createdAt: string;
-  updatedAt?: string;
+  status: "active" | "closed";
 }
 
 export interface Application {
@@ -37,38 +34,6 @@ export interface Application {
   status: "applied" | "in_review" | "interview" | "rejected" | "hired";
   feedback?: ResumeFeedback;
   appliedAt: string;
-  updatedAt?: string;
-}
-
-export interface Resume {
-  id: string;
-  candidateId: string;
-  personalDetails: {
-    name?: string;
-    email?: string;
-    phone?: string;
-    location?: string;
-    website?: string;
-    summary?: string;
-  };
-  skills: string[];
-  experience: {
-    title: string;
-    company: string;
-    location?: string;
-    startDate: string;
-    endDate?: string;
-    current?: boolean;
-    description?: string;
-  }[];
-  projects: {
-    name: string;
-    description?: string;
-    url?: string;
-    technologies?: string[];
-  }[];
-  createdAt: string;
-  updatedAt?: string;
 }
 
 export interface ResumeFeedback {

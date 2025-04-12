@@ -1,276 +1,84 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Job, Application, ResumeFeedback } from '@/types';
+import { Job, Application, UserRole } from '@/types';
 import { useAuth } from './AuthContext';
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
+
+// Sample data
+import { mockJobs, mockApplications } from '@/data/mockData';
 
 interface JobContextType {
   jobs: Job[];
   applications: Application[];
   userJobs: Job[];
   userApplications: Application[];
-  addJob: (job: Omit<Job, 'id' | 'employerId' | 'createdAt' | 'status'>) => Promise<void>;
-  applyToJob: (jobId: string, resume: string, coverLetter?: string) => Promise<Application | null>;
-  updateApplicationStatus: (applicationId: string, status: Application['status']) => Promise<void>;
+  addJob: (job: Omit<Job, 'id' | 'employerId' | 'createdAt' | 'status'>) => void;
+  applyToJob: (jobId: string, resume: string, coverLetter?: string) => Promise<Application>;
+  updateApplicationStatus: (applicationId: string, status: Application['status']) => void;
   getJobById: (id: string) => Job | undefined;
   getApplicationsForJob: (jobId: string) => Application[];
   getApplicationById: (id: string) => Application | undefined;
   analyzeResumeForJob: (resume: string, jobId: string) => Promise<{ score: number; keywords: string[] }>;
-  getResumeFeedback: (resume: string) => Promise<ResumeFeedback>;
-  deleteJob: (jobId: string) => Promise<void>;
+  getResumeFeedback: (resume: string) => Promise<Application['feedback']>;
 }
-
-const mapDbJobToJob = (dbJob: any): Job => ({
-  id: dbJob.id,
-  employerId: dbJob.employer_id,
-  title: dbJob.title,
-  company: dbJob.company,
-  location: dbJob.location,
-  description: dbJob.description,
-  requirements: dbJob.requirements || [],
-  skills: dbJob.skills || [],
-  salary: dbJob.salary,
-  status: dbJob.status,
-  createdAt: dbJob.created_at,
-  updatedAt: dbJob.updated_at,
-});
-
-const mapDbApplicationToApplication = (dbApp: any): Application => ({
-  id: dbApp.id,
-  jobId: dbApp.job_id,
-  candidateId: dbApp.candidate_id,
-  resume: dbApp.resume_id || '',
-  coverLetter: dbApp.cover_letter,
-  status: dbApp.status,
-  appliedAt: dbApp.applied_at,
-  updatedAt: dbApp.updated_at,
-});
 
 const JobContext = createContext<JobContextType | undefined>(undefined);
 
 export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, profile } = useAuth();
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
-  
-  const userJobs = profile?.role === 'employer' 
-    ? jobs.filter(job => job.employerId === user?.id)
+  const { user } = useAuth();
+  const [jobs, setJobs] = useState<Job[]>(mockJobs);
+  const [applications, setApplications] = useState<Application[]>(mockApplications);
+
+  // Filter jobs/applications based on user role
+  const userJobs = user?.role === 'employer' 
+    ? jobs.filter(job => job.employerId === user.id)
     : [];
     
-  const userApplications = profile?.role === 'candidate'
-    ? applications.filter(app => app.candidateId === user?.id)
+  const userApplications = user?.role === 'candidate'
+    ? applications.filter(app => app.candidateId === user.id)
     : [];
 
-  useEffect(() => {
-    if (user) {
-      fetchJobs();
-      fetchApplications();
-    }
-  }, [user]);
-
-  const fetchJobs = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('*');
-        
-      if (error) throw error;
-      
-      setJobs(data.map(mapDbJobToJob));
-    } catch (error) {
-      console.error('Error fetching jobs:', error);
-    }
-  };
-
-  const fetchApplications = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('applications')
-        .select('*');
-        
-      if (error) throw error;
-      
-      setApplications(data.map(mapDbApplicationToApplication));
-    } catch (error) {
-      console.error('Error fetching applications:', error);
-    }
-  };
-
-  const addJob = async (jobData: Omit<Job, 'id' | 'employerId' | 'createdAt' | 'status'>) => {
-    if (!user || profile?.role !== 'employer') {
-      toast({
-        title: "Permission denied",
-        description: "Only employers can post jobs",
-        variant: "destructive"
-      });
-      return;
-    }
+  const addJob = (jobData: Omit<Job, 'id' | 'employerId' | 'createdAt' | 'status'>) => {
+    if (!user || user.role !== 'employer') return;
     
-    try {
-      const { data, error } = await supabase
-        .from('jobs')
-        .insert({
-          title: jobData.title,
-          company: jobData.company,
-          location: jobData.location,
-          description: jobData.description,
-          requirements: jobData.requirements || [],
-          skills: jobData.skills || [],
-          salary: jobData.salary,
-          employer_id: user.id,
-          created_at: new Date().toISOString(),
-          status: 'active',
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      setJobs(prevJobs => [...prevJobs, mapDbJobToJob(data)]);
-      
-      toast({
-        title: "Job posted",
-        description: "Your job has been posted successfully",
-      });
-    } catch (error: any) {
-      console.error('Error adding job:', error);
-      toast({
-        title: "Job posting failed",
-        description: error.message || "Failed to post job",
-        variant: "destructive"
-      });
-    }
+    const newJob: Job = {
+      ...jobData,
+      id: `job-${Date.now()}`,
+      employerId: user.id,
+      createdAt: new Date().toISOString(),
+      status: 'active',
+    };
+    
+    setJobs(prevJobs => [...prevJobs, newJob]);
   };
 
-  const applyToJob = async (jobId: string, resume: string, coverLetter?: string): Promise<Application | null> => {
-    if (!user || profile?.role !== 'candidate') {
-      toast({
-        title: "Permission denied",
-        description: "Only candidates can apply to jobs",
-        variant: "destructive"
-      });
-      return null;
-    }
+  const applyToJob = async (jobId: string, resume: string, coverLetter?: string): Promise<Application> => {
+    if (!user || user.role !== 'candidate') throw new Error('Only candidates can apply to jobs');
     
-    const alreadyApplied = applications.some(app => app.jobId === jobId && app.candidateId === user.id);
-    if (alreadyApplied) {
-      toast({
-        title: "Already applied",
-        description: "You have already applied for this job",
-      });
-      return null;
-    }
+    // Analyze the resume against the job (in a real app, this would be an API call)
+    const analysis = await analyzeResumeForJob(resume, jobId);
     
-    try {
-      const analysis = await analyzeResumeForJob(resume, jobId);
-      
-      const newApplication = {
-        job_id: jobId,
-        candidate_id: user.id,
-        resume: resume,
-        cover_letter: coverLetter,
-        match_score: analysis.score,
-        matching_keywords: analysis.keywords,
-        status: 'applied',
-        applied_at: new Date().toISOString(),
-      };
-      
-      const { data, error } = await supabase
-        .from('applications')
-        .insert(newApplication)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      const application = mapDbApplicationToApplication(data);
-      application.matchScore = analysis.score;
-      application.matchingKeywords = analysis.keywords;
-      
-      setApplications(prevApps => [...prevApps, application]);
-      
-      toast({
-        title: "Application submitted",
-        description: "Your application has been submitted successfully",
-      });
-      
-      return application;
-    } catch (error: any) {
-      console.error('Error applying to job:', error);
-      toast({
-        title: "Application failed",
-        description: error.message || "Failed to submit application",
-        variant: "destructive"
-      });
-      return null;
-    }
+    const newApplication: Application = {
+      id: `app-${Date.now()}`,
+      jobId,
+      candidateId: user.id,
+      resume,
+      coverLetter,
+      matchScore: analysis.score,
+      matchingKeywords: analysis.keywords,
+      status: 'applied',
+      appliedAt: new Date().toISOString(),
+    };
+    
+    setApplications(prevApps => [...prevApps, newApplication]);
+    return newApplication;
   };
 
-  const updateApplicationStatus = async (applicationId: string, status: Application['status']) => {
-    try {
-      const { error } = await supabase
-        .from('applications')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', applicationId);
-      
-      if (error) throw error;
-      
-      setApplications(prevApps => 
-        prevApps.map(app => 
-          app.id === applicationId ? { ...app, status } : app
-        )
-      );
-      
-      toast({
-        title: "Status updated",
-        description: `Application status updated to ${status}`,
-      });
-    } catch (error: any) {
-      console.error('Error updating application status:', error);
-      toast({
-        title: "Update failed",
-        description: error.message || "Failed to update application status",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const deleteJob = async (jobId: string) => {
-    if (!user || profile?.role !== 'employer') {
-      toast({
-        title: "Permission denied",
-        description: "Only employers can delete jobs",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      const { error } = await supabase
-        .from('jobs')
-        .delete()
-        .eq('id', jobId)
-        .eq('employer_id', user.id);
-      
-      if (error) throw error;
-      
-      setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
-      
-      toast({
-        title: "Job deleted",
-        description: "The job posting has been deleted",
-      });
-    } catch (error: any) {
-      console.error('Error deleting job:', error);
-      toast({
-        title: "Delete failed",
-        description: error.message || "Failed to delete job",
-        variant: "destructive"
-      });
-    }
+  const updateApplicationStatus = (applicationId: string, status: Application['status']) => {
+    setApplications(prevApps => 
+      prevApps.map(app => 
+        app.id === applicationId ? { ...app, status } : app
+      )
+    );
   };
 
   const getJobById = (id: string) => {
@@ -285,17 +93,22 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return applications.find(app => app.id === id);
   };
 
+  // AI functions (simulated for demo)
   const analyzeResumeForJob = async (resume: string, jobId: string): Promise<{ score: number; keywords: string[] }> => {
     const job = getJobById(jobId);
     if (!job) throw new Error('Job not found');
     
-    const score = Math.floor(Math.random() * 41) + 60;
-    const keywords = job.skills.filter(() => Math.random() > 0.3);
+    // In a real app, this would use an AI service
+    // For demo purposes, we'll generate a random score and use the job skills as keywords
+    const score = Math.floor(Math.random() * 41) + 60; // Score between 60-100
+    const keywords = job.skills.filter(() => Math.random() > 0.3); // Randomly select some skills
     
     return { score, keywords };
   };
 
-  const getResumeFeedback = async (resume: string): Promise<ResumeFeedback> => {
+  const getResumeFeedback = async (resume: string): Promise<Application['feedback']> => {
+    // In a real app, this would use an AI service
+    // For demo purposes, we'll generate mock feedback
     return {
       grammar: {
         score: Math.floor(Math.random() * 30) + 70,
@@ -349,7 +162,6 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getApplicationById,
         analyzeResumeForJob,
         getResumeFeedback,
-        deleteJob
       }}
     >
       {children}

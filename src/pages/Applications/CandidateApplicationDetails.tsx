@@ -232,12 +232,12 @@ export default function CandidateApplicationDetails() {
                   
                   <div>
                     <h3 className="text-sm font-medium mb-1">Employment Type</h3>
-                    <p className="capitalize">Full-time</p>
+                    <p className="capitalize">{job.employmentType.replace("_", " ")}</p>
                   </div>
                   
                   <div>
                     <h3 className="text-sm font-medium mb-1">Salary Range</h3>
-                    <p>{job.salary || "Not specified"}</p>
+                    <p>${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()}</p>
                   </div>
                   
                   <div>

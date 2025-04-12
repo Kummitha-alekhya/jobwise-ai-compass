@@ -14,67 +14,40 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { UserRole } from "@/types";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Check, Loader2 } from "lucide-react";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-// Enhanced email regex pattern for better validation
-const EMAIL_REGEX = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
-
-// Define schema for form validation with better error messages
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .regex(EMAIL_REGEX, "Please enter a valid email address"),
-  password: z
-    .string()
-    .min(1, "Password is required"),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [serverError, setServerError] = useState("");
   
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-    mode: "onChange", // Enable real-time validation as the user types
-  });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<UserRole>("candidate");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const onSubmit = async (values: LoginFormValues) => {
-    setServerError("");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
     
     try {
-      await login(values.email, values.password);
+      await login(email, password, role);
       
       toast({
         title: "Login successful!",
         description: "Welcome back to JobWise.",
       });
       
-      // Redirection will be handled in the login function based on user role
+      // Redirect based on role
+      navigate(role === "employer" ? "/employer/dashboard" : "/candidate/dashboard");
     } catch (error) {
-      let message = "Invalid email or password";
+      let message = "Failed to login";
       if (error instanceof Error) {
         message = error.message;
       }
-      
-      setServerError(message);
       
       toast({
         title: "Login failed",
@@ -85,9 +58,6 @@ export default function Login() {
       setIsLoading(false);
     }
   };
-
-  // Determine if form is valid for button state
-  const isValid = form.formState.isValid;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -102,90 +72,70 @@ export default function Login() {
             </CardDescription>
           </CardHeader>
           
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-              <CardContent className="space-y-4">
-                {serverError && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{serverError}</AlertDescription>
-                  </Alert>
-                )}
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            type="email"
-                            placeholder="name@example.com"
-                            className={form.formState.errors.email ? "border-destructive pr-10" : ""}
-                          />
-                          {form.formState.dirtyFields.email && !form.formState.errors.email && (
-                            <Check className="absolute right-3 top-3 h-4 w-4 text-green-500" />
-                          )}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center justify-between">
-                        <FormLabel>Password</FormLabel>
-                        <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-                          Forgot password?
-                        </Link>
-                      </div>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="password"
-                          placeholder="••••••••"
-                          className={form.formState.errors.password ? "border-destructive" : ""}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-              
-              <CardFooter className="flex flex-col">
-                <Button 
-                  type="submit" 
-                  className="w-full mb-4" 
-                  disabled={isLoading || !isValid}
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="role">I am a</Label>
+                <RadioGroup 
+                  id="role" 
+                  className="flex gap-4" 
+                  defaultValue="candidate"
+                  onValueChange={(value) => setRole(value as UserRole)}
                 >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Logging in...
-                    </>
-                  ) : (
-                    "Log in"
-                  )}
-                </Button>
-                
-                <p className="text-sm text-center text-muted-foreground">
-                  Don't have an account?{" "}
-                  <Link to="/signup" className="text-primary hover:underline">
-                    Sign up
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="candidate" id="candidate" />
+                    <Label htmlFor="candidate" className="cursor-pointer">Candidate</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="employer" id="employer" />
+                    <Label htmlFor="employer" className="cursor-pointer">Employer</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                    Forgot password?
                   </Link>
-                </p>
-              </CardFooter>
-            </form>
-          </Form>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </CardContent>
+            
+            <CardFooter className="flex flex-col">
+              <Button type="submit" className="w-full mb-4" disabled={isLoading}>
+                {isLoading ? "Logging in..." : "Log in"}
+              </Button>
+              
+              <p className="text-sm text-center text-muted-foreground">
+                Don't have an account?{" "}
+                <Link to="/signup" className="text-primary hover:underline">
+                  Sign up
+                </Link>
+              </p>
+            </CardFooter>
+          </form>
         </Card>
       </main>
       
