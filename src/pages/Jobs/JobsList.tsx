@@ -69,7 +69,7 @@ export default function JobsList() {
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Locations</SelectItem>
+                  <SelectItem value="all">All Locations</SelectItem>
                   {locations.map((location, index) => (
                     <SelectItem key={index} value={location}>
                       {location}
